@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bakery V2 Guide</title>
+<style>
+body {max-width: 54rem; padding: 1rem; margin: auto; font: 1rem/1.6 system-ui; color: #402530; background: #fff5f8}
+pre {padding: 1rem; background: white; border: 1px solid #ebd0da; overflow: auto}
+code {overflow-wrap: anywhere}
+</style>
+<main>
+<h1>Bakery V2 Guide</h1>
+<p>Version 2 runs the same bakery exercise with an explicit fetch, batch acceptance, pickup completion, and weekly financial totals.</p>
+<h2>Start and use the app</h2>
+<ol>
+<li>In File Explorer, open the <strong>lecture9-bakery-app</strong> folder and choose <strong>Open in Terminal</strong>.</li>
+<li>Run <code>python app.py</code> and keep the terminal open.</li>
+<li>Open <a href="http://127.0.0.1:8001/">Bakery V2</a>. The included database resumes the saved exercise. A fresh database starts on Monday, November 23, 2026.</li>
+<li>Check the schedule and hire a helper before fetching if you want the added capacity considered for incoming requests. Click <strong>Fetch DMs</strong> to read that day's local Instagram file.</li>
+<li>Reject any eligible new orders you don't want. Click <strong>Accept all and go to next day</strong> to review the rest in message order, close today's pickups at 5 PM, and move forward. Review outcomes in the decision log.</li>
+</ol>
+
+<h2>Screen wireframe</h2>
+<pre>Exercise date                 Fetch DMs | Accept all and go to next day
+Calendar week                 Order revenue | Helper cost | Difference
+New requests                  Pickup schedule by date
+Customer, item, time, pickup  Oven time left, revenue, cost, hire helper
+Reject                        Orders booked for each pickup
+Decision log                  Past pickups</pre>
+<h2>Order states</h2>
+<pre>New DM ── compatible ──→ Requested ── batch fits ──→ Accepted
+   └─ incompatible ──→ Rejected ←─ baker rejection or batch overflow
+Accepted ── 5 PM close ──→ Picked up
+Accepted ── eligible change ──→ Accepted, updated
+Accepted ── eligible cancellation ──→ Cancelled</pre>
+<p>Fetch checks each message against the current commitments. Requested orders do not reserve capacity. The batch checks again after each acceptance, so later requests can be rejected if earlier ones fill the day. An eligible change or cancellation applies during fetch and must match exactly one accepted order by customer and pickup date.</p>
+<h2>Data design</h2>
+<pre>Exercise day → Days (date, helper booked, messages fetched)
+Days 1 ─── many Orders (number, customer, product, quantity, pickup, status)
+Days 1 ─── many Messages (source position, request text, outcome, order link)</pre>
+<p>The starting CSV in data/ supplies accepted orders. The seven local HTML files in data/ supply DMs. SQLite stores processing state in this version's own <code>bakery.db</code>. Oven usage, order revenue and helper cost are calculated from the stored facts. Revenue includes accepted and picked-up orders and excludes cancelled or rejected orders. The difference subtracts helper costs only. The weekly summary uses Monday through Sunday of the current exercise date.</p>
+<h2>Release checks</h2>
+<ul>
+<li>Data. Confirm that initial orders import once, each DM is processed once, Friday's available time and weekly revenue reconcile, and reopening preserves state.</li>
+<li>Rules. Exercise the notice boundary, over-capacity rejection, helper limits, a valid change and cancellation, batch contention, and the 5 PM pickup transition.</li>
+<li>Interface. Submit the actual HTML forms over HTTP. Check that controls are enabled in sequence and that feedback explains the result of each action.</li>
+</ul>
+<p>The release checks ran on a temporary database copy and covered all 25 DMs through the December 1 pickups. The starting data gave Friday three free oven hours and the first week $1,960 in order revenue. In the test scenario, Saturday used all twelve hours after a helper was booked, and the batch rejected the two orders that no longer fit.</p>
+</main>
+</html>
